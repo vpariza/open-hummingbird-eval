@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+title: Hummingbird Evaluation for vision encoders
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Valentinos
+    family-names: Pariza
+    email: valentinos.pariza@student.uva.nl
+    affiliation: University of Amsterdam
+    orcid: 'https://orcid.org/0009-0008-3440-9935'
+  - given-names: Mohammadreza
+    family-names: Salehi
+    email: s.salehidehnavi@uva.nl
+    affiliation: University of Amsterdam
+    orcid: 'https://orcid.org/0000-0002-9247-9439'
+  - given-names: Yuki
+    family-names: Asano
+    email: y.m.asano@uva.nl
+    affiliation: University of Amsterdam
+repository-code: 'https://github.com/vpariza/open-hummingbird-eval'
+abstract: >-
+  This repository implements the Dense NN Retrieval
+  Evaluation method introduced by Balažević et al. Towards
+  In-context Scene Understanding -
+  https://arxiv.org/abs/2306.01667.
+keywords:
+  - Deep Learning
+  - Vision
+  - Semantic Segmentation
+  - Dense NN Retrieval
+  - Hummingbird
+license: MIT
+version: 1.0.0
+date-released: '2024-04-18'
