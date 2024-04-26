@@ -123,42 +123,54 @@ class HbirdEvaluation():
         sampled_indices = []
         for k, gt in enumerate(tqdm(pathified_gts)):
             class_frequency = self.get_class_frequency(gt)
-            patch_scores = self.get_patch_scores(gt, class_frequency)
+            patch_scores, nonzero_indices = self.get_patch_scores(gt, class_frequency)
+
             patch_scores = patch_scores.flatten()
-            zero_score_idx = torch.where(patch_scores == 0)
+            nonzero_indices = nonzero_indices.flatten()
+
             # assert zero_score_idx[0].size(0) != 0 ## for pascal every patch should belong to one class
-            none_zero_score_idx = torch.where(patch_scores != 0)
-            patch_scores[zero_score_idx] = 1e6
-            ## sample uniform distribution with the size none_zero_score_idx
-            uniform_x = torch.rand(none_zero_score_idx[0].size(0))
-            patch_scores[none_zero_score_idx] *= uniform_x
+            patch_scores[~nonzero_indices] = 1e6
+
+            # sample uniform distribution with the same size as the
+            # number of nonzero indices (we use the sum here as the
+            # nonzero_indices matrix is a boolean mask)
+            uniform_x = torch.rand(nonzero_indices.sum())
+            patch_scores[nonzero_indices] *= uniform_x
             feature = features[k]
-            ### select the least num_sampled_features score idndices
+
+            ### select the least num_sampled_features score indices
             _, indices = torch.topk(patch_scores, self.num_sampled_features, largest=False)
+
             sampled_indices.append(indices)
             samples = feature[indices]
             sampled_features.append(samples)
+
         sampled_features = torch.stack(sampled_features)
         sampled_indices = torch.stack(sampled_indices)
+
         return sampled_features, sampled_indices
+
     def get_class_frequency(self, gt):
-        class_frequency = torch.zeros((self.num_classes))
-        for i in range(self.num_classes):
-            class_existence = torch.zeros((gt.shape[0], gt.shape[1]))
-            for j in range(gt.shape[0]):
-                for k in range(gt.shape[1]):
-                    if torch.sum(gt[j, k] == i) > 0:
-                        class_existence[j, k] = 1
-            class_frequency[i] = torch.sum(class_existence)
-        return class_frequency
-    def get_patch_scores(self, gt, class_frequency):
-        patch_scores = torch.zeros((gt.shape[0], gt.shape[1]))
+        class_frequency = torch.zeros((self.num_classes), device=self.device)
+
         for i in range(gt.shape[0]):
             for j in range(gt.shape[1]):
-                for k in range(class_frequency.shape[0]):
-                    if torch.sum(gt[i, j] == k) > 0:
-                        patch_scores[i, j] += class_frequency[k]
-        return patch_scores
+                patch_classes = gt[i, j].unique()
+                class_frequency[patch_classes] += 1
+
+        return class_frequency
+
+    def get_patch_scores(self, gt, class_frequency):
+        patch_scores = torch.zeros((gt.shape[0], gt.shape[1]))
+        nonzero_indices = torch.zeros((gt.shape[0], gt.shape[1]), dtype=torch.bool)
+
+        for i in range(gt.shape[0]):
+            for j in range(gt.shape[1]):
+                patch_classes = gt[i, j].unique()
+                patch_scores[i, j] = class_frequency[patch_classes].sum()
+                nonzero_indices[i, j] = patch_classes.shape[0] > 0
+
+        return patch_scores, nonzero_indices
 
     def patchify_gt(self, gt, patch_size):
         bs, c, h, w = gt.shape
