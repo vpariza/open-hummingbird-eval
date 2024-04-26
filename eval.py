@@ -46,13 +46,13 @@ def main(args):
 
 
 def seed_everything(seed: int):
-	random.seed(seed)
-	np.random.seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
 
-	os.environ["PYTHONHASHSEED"] = str(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
 
-	torch.manual_seed(seed)
-	torch.cuda.manual_seed_all(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 
 if __name__ == "__main__":
