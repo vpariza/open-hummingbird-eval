@@ -179,6 +179,23 @@ hbird_miou = hbird_evaluation(model.to(device),
 print('Dense NN Ret - miou score:', hbird_miou) 
 
 ```
+
+#### Ready to use script
+
+We also provide a ready to use Python script to run evaluations using DINO backbones. For example, to evaluate a ViT S/16 on the whole Pascal VOC dataset using a memory bank of size 1024*10<sup>2</sup> you can run the following command
+
+```sh
+python eval.py                  \
+    --seed 42                   \
+    --batch-size 64             \
+    --input-size 512            \
+    --patch-size 16             \
+    --memory-size 102400        \
+    --embeddings-size 384       \
+    --data-dir VOCSegmentation  \
+    --model dino_vits16
+```
+
 ###  Setup
 This is the section describing what is required to execute the Dense NN Retrieval Evaluation.
 
@@ -191,7 +208,9 @@ The most prevalent libraries being used:
 * `joblib`
 
 #### Dataset Setup
+
 ##### VOC Pascal
+
 We provide you with a zipped version of the whole dataset as well as with two smaller versions of it:
 * [Pascal VOC](https://1drv.ms/u/s!AnBBK4_o1T9MbXrxhV7BpGdS8tk?e=P7G6F0)
 * [Mini Pascal VOC](https://1drv.ms/u/s!AnBBK4_o1T9MdS8wbopnWowJcpM?e=VHhsFB)
@@ -213,6 +232,13 @@ dataset root.
 │   │   train.txt
 │   │   trainaug.txt
 │   │   val.txt
+```
+
+You can run the following shell commands to download and unpack the complete Pascal VOC dataset:
+
+```sh
+wget -O voc_data.zip "https://c2ymfq.am.files.1drv.com/y4mZqATCHOv_Z88obTJ_ZatMGDEx6ts5TzOyJnVLKqmkXZwdL_PKIMFLNmZR9FLFJ1CHMC6h_7bJjxlcUM8yXjG92Ms1X-95x6Dh90QgawSpYDPoE1gmLx3VwnW2amZZEog-omFd87fTKZqn3lpP_mtisDQsfDzruBgz_JHcSWsZd2jrsN2qoV3cJ5HammjY_im0ftfjwNOup1EuiWcQ9KT6A"
+unzip voc_data.zip
 ```
 
 ### Examples
