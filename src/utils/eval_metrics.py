@@ -8,6 +8,8 @@ from joblib import Parallel, delayed
 from scipy.optimize import linear_sum_assignment
 from collections import defaultdict
 
+from timm.models import create_model
+from src.utils.eval_models import FCNHead
 import torch.nn as nn
 from torch.optim.lr_scheduler import StepLR
 
@@ -187,6 +189,42 @@ class PredsmIoU:
         for k,v in preds_to_gts.items():
             gt_to_matches[v].append(k)
         return gt_to_matches
+
+
+## test code
+
+if __name__ == "__main__":
+    import torchvision.transforms as trn
+    import torch.nn.functional as F
+    import wandb
+    from data.VOC.voc_data import PascalVOCDataModule
+    logger = wandb.init(project=project_name, group="eval_metric", tags="metric", job_type="eval")
+    image_train_transform = trn.Compose([trn.Resize((224, 224)), trn.ToTensor()])
+    target_train_transform = trn.Compose([trn.Resize((224, 224)), trn.ToTensor()])
+    train_transforms = {"img": image_train_transform, "target": target_train_transform}
+    dataset = PascalVOCDataModule(batch_size=32, train_transform=train_transforms, val_transform=train_transforms, test_transform=train_transforms)
+    dataset.setup()
+    train_dataloader = dataset.get_train_dataloader()
+    val_dataloader = dataset.get_val_dataloader()
+    test_dataloader = dataset.get_test_dataloader()
+    MIOU_metric = PredsmIoU(num_gt_classes=21, num_pred_classes=21)
+    all_preds = []
+    for i, (x, y) in enumerate(train_dataloader):
+        y = (y * 255).long()
+        y = F.interpolate(y.float(), size=(56, 56), mode="nearest").long()
+        valid = (y != 255)
+        y = y[valid]
+        all_preds.append(y)
+    all_preds = torch.cat(all_preds, dim=0)
+    MIOU_metric.update(all_preds.cpu(), all_preds.cpu())
+    jac, tp, fp, fn, reordered_preds, matched_bg_clusters = MIOU_metric.compute(is_global_zero=True)
+    print(f"jac: {jac}, tp: {tp}, fp: {fp}, fn: {fn}")
+    # print(f"reordered_preds: {reordered_preds}")
+    # print(f"matched_bg_clusters: {matched_bg_clusters}")
+    if jac == 1 and sum(fp) == 0 and sum(fn) == 0:
+        print("passed")
+        wandb.log({"jac": jac, "tp": tp, "fp": fp, "fn": fn})
+    wandb.finish()
           
         
 
