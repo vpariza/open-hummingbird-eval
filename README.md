@@ -121,7 +121,7 @@ hbird_miou = hbird_evaluation(model.to(device),
                                     # the training dataset in order to generate the memory
         device=device,              
         return_knn_details=False,   # whether to return additional NNs details
-        num_neighbour=30,           # the number of neighbors to fetch per image patch
+        n_neighbours=30,           # the number of neighbors to fetch per image patch
         nn_params=None,             # Other parameters to be used for the k-NN operator
         ftr_extr_fn=fn,             # function that extracts image patch features with 
                                     # a vision encoder
@@ -166,7 +166,7 @@ hbird_miou = hbird_evaluation(model.to(device),
                                     # the training dataset in order to generate the memory
         device=device,              
         return_knn_details=False,   # whether to return additional NNs details
-        num_neighbour=30,           # the number of neighbors to fetch per image patch
+        n_neighbours=30,           # the number of neighbors to fetch per image patch
         nn_params=None,             # Other parameters to be used for the k-NN operator
         ftr_extr_fn=fn,             # function that extracts image patch features with 
                                     # a vision encoder
