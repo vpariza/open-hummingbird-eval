@@ -49,8 +49,7 @@ def get_hbird_transforms(input_size = 224,
         saturation_jitter_probability = 0.5,
         hue_jitter_probability = 0.5,
         img_mean = IMAGNET_MEAN,
-        img_std = IMAGNET_STD,
-        n_views = 1):
+        img_std = IMAGNET_STD):
     # 1. Return the transformations in dictionaries for training, validation, and testing
     train_transforms = get_hbird_train_transforms(input_size, 
                                                     min_scale_factor, 
@@ -64,8 +63,7 @@ def get_hbird_transforms(input_size = 224,
                                                     saturation_jitter_probability, 
                                                     hue_jitter_probability, 
                                                     img_mean, 
-                                                    img_std,
-                                                    n_views)
+                                                    img_std)
     val_transforms = get_hbird_val_transforms(input_size, img_mean, img_std)
     test_transforms = get_hbird_val_transforms(input_size, img_mean, img_std)
     return train_transforms, val_transforms, test_transforms
@@ -82,11 +80,7 @@ def get_hbird_train_transforms(input_size = 224,
         saturation_jitter_probability = 0.5,
         hue_jitter_probability = 0.5,
         img_mean = IMAGNET_MEAN,
-        img_std = IMAGNET_STD,
-        n_views = 1):
-
-    if n_views != 1:
-        raise ValueError("Only 1 view is supported now")
+        img_std = IMAGNET_STD):
 
     # 1. Image transformations for training
     image_train_transform = trn.Compose([

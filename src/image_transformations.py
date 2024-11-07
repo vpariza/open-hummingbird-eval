@@ -80,3 +80,20 @@ class Resize(object):
     
     def __call__(self, img, target):
         return resize(img, target, self.size)
+
+
+class CombTransforms(object):
+    def __init__(self, img_transform=None, tgt_transform=None, img_tgt_transform=None):
+        self.img_transform = img_transform
+        self.tgt_transform = tgt_transform
+        self.img_tgt_transform = img_tgt_transform
+
+    def __call__(self, img, tgt):
+        if self.img_transform:
+            img = self.img_transform(img)
+        if self.tgt_transform:
+            tgt = self.tgt_transform(tgt)
+        if self.img_tgt_transform:
+            return self.img_tgt_transform(img, tgt)
+        else:
+            return img, tgt
