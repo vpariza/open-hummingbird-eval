@@ -234,15 +234,6 @@ dataset root.
 │   │   val.txt
 ```
 
-You can run the following shell commands to download and unpack the complete Pascal VOC dataset:
-
-```sh
-# Download the full Pascal VOC - https://1drv.ms/u/c/67fac29a77adbae6/EcilwP2YfSBGj3xvUWCu42EBfoHTmSlHz8Aw_8VgqwWd8g?e=KUFcva # full
-!wget -O voc_data.zip "https://my.microsoftpersonalcontent.com/personal/67fac29a77adbae6/_layouts/15/download.aspx?UniqueId=fdc0a5c8-7d98-4620-8f7c-6f5160aee361&Translate=false&tempauth=v1e.eyJzaXRlaWQiOiIyZTY1ODA5MS1jYWIzLTQ4ZDUtYWIxYi0zZDc1MjM3MzA5NTYiLCJhdWQiOiIwMDAwMDAwMy0wMDAwLTBmZjEtY2UwMC0wMDAwMDAwMDAwMDAvbXkubWljcm9zb2Z0cGVyc29uYWxjb250ZW50LmNvbUA5MTg4MDQwZC02YzY3LTRjNWItYjExMi0zNmEzMDRiNjZkYWQiLCJleHAiOiIxNzMxNDI5ODkwIn0.XF05ZSg6uh0fwPnrSQQZtPHiiFwoASiOKBYiCqvmEd5r35ryQ5IQwXLw9eyP7CAAsdIes6ebhxXdNP-lJfMiXnCbvt4hyyHfv-YjMTAq7CuMwvo8JMSS2BVcvriOnot-gBmfbh0aSnA2g2IXIHHYNb3jHPfddqYy0wG6B7lfIkKcyX2I2skyJ3Nd3MXZvF9ciePhlramowiQJMjJNsu8orokzaO5MHe0mK202a8Z1z69UyEs63VQvLa4HP9Eh4r9XE_L98OtFLqUEt-ZZVxaH12kEXrCVZG-RkHjUpvmbicKI5Ia9KW3v4dy4XfnOPTyxzbY3gtxcdoepCjTjD7zRDBjIKdQc6--1FQ9Wg7MwneaJO7sI95KhFonX7EjW67XVqxWOa3r5V2KgWexpPISvrxrekB_tJVtqssod8Bc_TpCA8ADE1yA03W3oaGVChebZkdNV7s0gzrZ5MxeGTcKOJyBmvtc11ysH0db-DAw-7f_Rip36VHUzRgu7vbhr5JKSDpuDdi6pKSkXLPktMRxag.4A9dzhLEJnkjs96PvrorlYxDiGrGQDR_gmEtkzz6syM&ApiVersion=2.0"
-
-unzip voc_data.zip
-```
-
 ### Examples
 Basic example on how to download any of our dataset versions and evaluate a vision encoder with our implementation of the Hummingbird evaluation can be found at [hbird_eval_example](./examples/hbird_eval_example.ipynb) in the examples folder.
 
