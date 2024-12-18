@@ -234,6 +234,31 @@ dataset root.
 │   │   val.txt
 ```
 
+##### VOC Pascal
+
+You can download the ADE20K dataset from [Kaggle](https://www.kaggle.com/datasets/awsaf49/ade20k-dataset).
+
+The structure of the Pascal VOC dataset folder should be as follows:
+```
+dataset root.
+└───annotations
+│   └───training
+│   |   | *.png
+│   |   │   ...
+│   └───validation
+│       | *.png
+│       │   ...
+└───images
+│   └───training
+│   |   | *.jpg
+│   |   │   ...
+│   └───validation
+│       | *.jpg
+│       │   ...
+└───objectInfo150.txt
+└───sceneCategories.txt
+```
+
 ### Examples
 Basic example on how to download any of our dataset versions and evaluate a vision encoder with our implementation of the Hummingbird evaluation can be found at [hbird_eval_example](./examples/hbird_eval_example.ipynb) in the examples folder.
 
@@ -248,7 +273,7 @@ Stay tuned with our work because we will bring more support and extensions of ou
 
 | Feature | Description |
 | --- | --- |
-| `ADE20K` | Code and Results for the Dataset **ADE20K** |
+| `Cityscapes` | Code and Results for the Dataset **Cityscapes** |
 | `NYUv2` | Code and Results for the Dataset **NYUv2** |
 
 ## Contributors
