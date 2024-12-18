@@ -238,7 +238,7 @@ dataset root.
 
 You can download the ADE20K dataset from [Kaggle](https://www.kaggle.com/datasets/awsaf49/ade20k-dataset).
 
-The structure of the Pascal VOC dataset folder should be as follows:
+The structure of the ADE20K dataset folder should be as follows:
 ```
 dataset root.
 └───annotations
