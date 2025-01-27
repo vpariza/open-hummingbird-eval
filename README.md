@@ -234,7 +234,7 @@ dataset root.
 │   │   val.txt
 ```
 
-##### VOC Pascal
+##### ADE20K
 
 You can download the ADE20K dataset from [Kaggle](https://www.kaggle.com/datasets/awsaf49/ade20k-dataset).
 
