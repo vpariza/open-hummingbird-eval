@@ -313,6 +313,6 @@ def hbird_evaluation(model, d_model, patch_size, dataset_name:str, data_dir:str,
                         augmentation_epoch=augmentation_epoch, num_classes=num_classes, 
                         device=device, nn_params=nn_params, memory_size=memory_size, 
                         dataset_size=dataset_size)
-    return evaluator.evaluate(val_loader, eval_spatial_resolution, return_knn_details=return_knn_details)
+    return evaluator.evaluate(val_loader, eval_spatial_resolution, return_knn_details=return_knn_details, ignore_index=ignore_index)
            
     
