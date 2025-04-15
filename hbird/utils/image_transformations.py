@@ -4,8 +4,6 @@ from PIL import Image
 import torchvision.transforms.functional as F
 from torchvision import transforms
 import torch
-import numpy as np
-from PIL import ImageFilter
 
 def random_resize_crop(image, target, size=(256, 256), scale=(0.08, 1.0), ratio=(3.0 / 4.0, 4.0 / 3.0)):
     ## convert target to tensor

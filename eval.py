@@ -30,7 +30,7 @@ def main(args):
         # Whether to return additional NNs details
         return_knn_details=False,
         # The number of neighbors to fetch per image patch
-        num_neighbour=30,
+        n_neighbours=30,
         # Other parameters to be used for the k-NN operator
         nn_params=None,
         # Function that extracts features from a vision encoder on images

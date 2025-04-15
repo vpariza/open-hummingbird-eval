@@ -116,12 +116,13 @@ hbird_miou = hbird_evaluation(model.to(device),
         d_model=embed_dim,          # size of the embedding feature vectors of patches
         patch_size=patch_size, 
         batch_size = batch_size, 
-        input_size=224,             
+        input_size=input_size,             
         augmentation_epoch=1,       # how many iterations of augmentations to use on top of 
                                     # the training dataset in order to generate the memory
         device=device,              
         return_knn_details=False,   # whether to return additional NNs details
-        n_neighbours=30,           # the number of neighbors to fetch per image patch
+        n_neighbours=30,            # the number of neighbors to fetch per image patch
+        nn_method='<nn method>',    # options: faiss or scann as the k-nn library to be used, scann uses cpu, faiss gpu
         nn_params=None,             # Other parameters to be used for the k-NN operator
         ftr_extr_fn=fn,             # function that extracts image patch features with 
                                     # a vision encoder
@@ -129,8 +130,11 @@ hbird_miou = hbird_evaluation(model.to(device),
                                     # currently only Pascal VOC is included.
         data_dir='<the path to the Pascal VOC Dataset>',    # path to the dataset 
                                                             # to use for evaluation
-        memory_size=None)           # How much you want to limit your dataset, 
-                                    # None if to be left unbounded
+        memory_size=None,           # How much you want to limit your datasetNone if to be left unbounded
+        train_fs_path=None,         # The path to the file with the subset of filenames for training
+        val_fs_path=None,           # The path to the file with the subset of filenames for validation
+    )           
+                                    
 print('Dense NN Ret - miou score:', hbird_miou) 
 
 ```
@@ -161,12 +165,13 @@ hbird_miou = hbird_evaluation(model.to(device),
         d_model=embed_dim,          # size of the embedding feature vectors of patches
         patch_size=patch_size, 
         batch_size = batch_size, 
-        input_size=224,             
+        input_size=input_size,             
         augmentation_epoch=1,       # how many iterations of augmentations to use on top of 
                                     # the training dataset in order to generate the memory
         device=device,              
         return_knn_details=False,   # whether to return additional NNs details
-        n_neighbours=30,           # the number of neighbors to fetch per image patch
+        n_neighbours=30,            # the number of neighbors to fetch per image patch
+        nn_method='<nn method>',    # options: faiss or scann as the k-nn library to be used, scann uses cpu, faiss gpu
         nn_params=None,             # Other parameters to be used for the k-NN operator
         ftr_extr_fn=fn,             # function that extracts image patch features with 
                                     # a vision encoder
@@ -174,8 +179,10 @@ hbird_miou = hbird_evaluation(model.to(device),
                                     # currently only Pascal VOC is included.
         data_dir='<the path to the Pascal VOC Dataset>',    # path to the dataset 
                                                             # to use for evaluation
-        memory_size=None)           # How much you want to limit your dataset, 
-                                    # None if to be left unbounded
+        memory_size=None,           # How much you want to limit your datasetNone if to be left unbounded
+        train_fs_path=None,         # The path to the file with the subset of filenames for training
+        val_fs_path=None,           # The path to the file with the subset of filenames for validation
+    )   
 print('Dense NN Ret - miou score:', hbird_miou) 
 
 ```
@@ -198,73 +205,39 @@ python eval.py                  \
 
 ###  Setup
 This is the section describing what is required to execute the Dense NN Retrieval Evaluation.
+Installation instructions can be found to the [Installation Guide](./INSTALLATION.md).
 
-#### Python Libraries
-The most prevalent libraries being used:
-* `torch` + `torchvision`
-* `torchmetrics`
-* `scann`
-* `numpy`
-* `joblib`
+* If you want to install the library to have access everywhere when using a python environment, then you can do so:
+```bash
+cd open-hummingbird-eval
+pip install . # or for editing and using: `pip install -e .`
+```
 
 #### Dataset Setup
+We now have 5 available datasets:
+* `ade20k`
+* `voc`
+* `coco-thing`
+* `coco-stuff`
+* `cityscapes`
 
-##### VOC Pascal
+And you can now select a subset of the training dataset by including a suffix `*<fraction>` next to the dataset name. For example, to evaluate on a random `0.1` fraction of the Pascal VOC, you can specify `dataset_name="voc*0.1"` in the hbird_evaluation evaluation method above.
 
-We provide you with a zipped version of the whole dataset as well as with two smaller versions of it:
-* [Pascal VOC](https://1drv.ms/u/s!AnBBK4_o1T9MbXrxhV7BpGdS8tk?e=P7G6F0)
-* [Mini Pascal VOC](https://1drv.ms/u/s!AnBBK4_o1T9MdS8wbopnWowJcpM?e=VHhsFB)
-* [Tiny Pascal VOC](https://1drv.ms/u/s!AnBBK4_o1T9MdIuhcH4gbjsTdTY?e=spmlzg)
+Please refer to the [Dataset Guide](./DATASET.md) to see the full structure of how each dataset folder should look like.
 
-The structure of the Pascal VOC dataset folder should be as follows:
-```
-dataset root.
-└───SegmentationClass
-│   │   *.png
-│   │   ...
-└───SegmentationClassAug # contains segmentation masks from trainaug extension 
-│   │   *.png
-│   │   ...
-└───images
-│   │   *.jpg
-│   │   ...
-└───sets
-│   │   train.txt
-│   │   trainaug.txt
-│   │   val.txt
-```
-
-##### ADE20K
-
-You can download the ADE20K dataset from [Kaggle](https://www.kaggle.com/datasets/awsaf49/ade20k-dataset).
-
-The structure of the ADE20K dataset folder should be as follows:
-```
-dataset root.
-└───annotations
-│   └───training
-│   |   | *.png
-│   |   │   ...
-│   └───validation
-│       | *.png
-│       │   ...
-└───images
-│   └───training
-│   |   | *.jpg
-│   |   │   ...
-│   └───validation
-│       | *.jpg
-│       │   ...
-└───objectInfo150.txt
-└───sceneCategories.txt
-```
+We also provide file sets in the [file_sets](./file_sets/) folder that specify subsets of the original dataset. For example in the folder [./file_sets/voc/1_div_8/](./file_sets/voc/1_div_8/) there are 5 different subsets of the Pascal VOC training dataset that are a 1/8 fraction of the original dataset, keeping the same distribution of labels as the original dataset ( for the 1_div_128 that would be 1/128 fraction etc.).
 
 ### Examples
-Basic example on how to download any of our dataset versions and evaluate a vision encoder with our implementation of the Hummingbird evaluation can be found at [hbird_eval_example](./examples/hbird_eval_example.ipynb) in the examples folder.
+Basic examples on how to download any of our dataset versions and evaluate a vision encoder with our implementation of the Hummingbird evaluation can be found at the [examples folder](./examples/).
 
-You can also open it in google colab at:
+You can also open it in google colab:
+#### Example with using scann library
+<a href="https://githubtocolab.com/vpariza/open-hummingbird-eval/blob/main/examples/hbird_eval_example_scann.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
 
-<a href="https://githubtocolab.com/vpariza/open-hummingbird-eval/blob/main/examples/hbird_eval_example.ipynb">
+#### Example with using faiss-gpu library
+<a href="https://githubtocolab.com/vpariza/open-hummingbird-eval/blob/main/examples/hbird_eval_example_faiss_gpu.ipynb">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 
@@ -273,8 +246,7 @@ Stay tuned with our work because we will bring more support and extensions of ou
 
 | Feature | Description |
 | --- | --- |
-| `Cityscapes` | Code and Results for the Dataset **Cityscapes** |
-| `NYUv2` | Code and Results for the Dataset **NYUv2** |
+| `NYUv2` | Support for Depth Estimation with this code for **NYUv2** |
 
 ## Contributors
 

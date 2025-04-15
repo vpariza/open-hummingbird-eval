@@ -17,26 +17,32 @@ except ImportError:
     def tqdm(iterator, *args, **kwargs):
         return iterator
 
-import scann
+# import scann
 import os
-
+import random
 import numpy as np
-from src.models import FeatureExtractorBeta as FeatureExtractor
-from src.models import FeatureExtractorSimple
-from src.eval_metrics import PredsmIoU
+from hbird.models import FeatureExtractor
+from hbird.models import FeatureExtractorSimple
+from hbird.utils.eval_metrics import PredsmIoU
+from hbird.utils.io import read_file_set
 
-from src.transforms import get_hbird_val_transforms, get_hbird_train_transforms, get_hbird_train_transforms_for_imgs
+from hbird.utils.transforms import get_hbird_val_transforms, get_hbird_train_transforms, get_hbird_train_transforms_for_imgs
 
-from src.image_transformations import CombTransforms
-from src.voc_data import VOCDataModule
-from src.ade20kdata import Ade20kDataModule
+from hbird.utils.image_transformations import CombTransforms
+from hbird.data.voc_data import VOCDataModule
+from hbird.data.ade20k_data import Ade20kDataModule
+from hbird.data.cityscapes_data import CityscapesDataModule
+from hbird.data.coco_data import CocoDataModule
 
 class HbirdEvaluation():
-    def __init__(self, feature_extractor, train_loader, n_neighbours, augmentation_epoch, num_classes, device, nn_params=None, memory_size=None, dataset_size=None, f_mem_p=None, l_mem_p=None):
+    def __init__(self, feature_extractor, train_loader, n_neighbours, augmentation_epoch, num_classes, device, nn_method='scann', nn_params=None, memory_size=None, dataset_size=None, f_mem_p=None, l_mem_p=None):
         if nn_params is None:
             nn_params = {}
+        self.nn_params = nn_params
         self.feature_extractor = feature_extractor
         self.device = device
+        self.nn_method = nn_method
+        assert self.nn_method in ['faiss', 'scann'], "Only faiss and scann are supported"
         self.augmentation_epoch = augmentation_epoch
         self.memory_size = memory_size
         self.n_neighbours = n_neighbours
@@ -55,14 +61,23 @@ class HbirdEvaluation():
             self.label_memory = torch.zeros((self.memory_size, self.num_classes ))
         self.create_memory(train_loader, num_classes=self.num_classes, eval_spatial_resolution=eval_spatial_resolution)
         self.save_memory()
-        self.feature_memory = self.feature_memory.to(self.device)
-        self.label_memory = self.label_memory.to(self.device)
-        self.create_NN(self.n_neighbours, **nn_params)
+        self.feature_memory = self.feature_memory.cpu()
+        self.label_memory = self.label_memory.cpu()
+        self.create_NN(self.n_neighbours, nn_method=self.nn_method, **self.nn_params)
     
-    def create_NN(self, n_neighbours=30, distance_measure="dot_product", num_leaves=512, num_leaves_to_search=32, anisotropic_quantization_threshold=0.2, num_reordering_candidates=120, dimensions_per_block=4):
-        self.NN_algorithm = scann.scann_ops_pybind.builder(self.feature_memory.detach().cpu().numpy(), n_neighbours, distance_measure).tree(
-    num_leaves=num_leaves, num_leaves_to_search=num_leaves_to_search, training_sample_size=self.feature_memory.size(0)).score_ah(
-    2, anisotropic_quantization_threshold=anisotropic_quantization_threshold, dimensions_per_block=dimensions_per_block).reorder(num_reordering_candidates).build()
+    # def create_NN_2(self, n_neighbours=30, distance_measure="dot_product", num_leaves=512, num_leaves_to_search=32, anisotropic_quantization_threshold=0.2, num_reordering_candidates=120, dimensions_per_block=4):
+    #     self.NN_algorithm = scann.scann_ops_pybind.builder(self.feature_memory.detach().cpu().numpy(), n_neighbours, distance_measure).tree(
+    # num_leaves=num_leaves, num_leaves_to_search=num_leaves_to_search, training_sample_size=self.feature_memory.size(0)).score_ah(
+    # 2, anisotropic_quantization_threshold=anisotropic_quantization_threshold, dimensions_per_block=dimensions_per_block).reorder(num_reordering_candidates).build()
+
+
+    def create_NN(self, n_neighbours=30, nn_method='faiss', **kwargs):
+        if nn_method == 'scann':
+            from hbird.nn.search_scann import NearestNeighborSearchScaNN
+            self.NN_algorithm = NearestNeighborSearchScaNN(self.feature_memory, n_neighbors=n_neighbours, **kwargs)
+        elif nn_method == 'faiss':
+            from hbird.nn.search_faiss import NearestNeighborSearchFaiss
+            self.NN_algorithm = NearestNeighborSearchFaiss(self.feature_memory, n_neighbors=n_neighbours, **kwargs)
 
     def create_memory(self, train_loader, num_classes, eval_spatial_resolution):
         feature_memory = list()
@@ -117,8 +132,8 @@ class HbirdEvaluation():
             torch.save(self.label_memory.cpu(), self.l_mem_p)
     def load_memory(self):
         if self.f_mem_p is not None and self.l_mem_p is not None and os.path.isfile(self.f_mem_p) and os.path.isfile(self.l_mem_p):
-            self.feature_memory = torch.load(self.f_mem_p).to(self.device)
-            self.label_memory = torch.load(self.l_mem_p).to(self.device)
+            self.feature_memory = torch.load(self.f_mem_p)
+            self.label_memory = torch.load(self.l_mem_p)
             return True
         return False
     def sample_features(self, features, pathified_gts):
@@ -204,9 +219,10 @@ class HbirdEvaluation():
     def find_nearest_key_to_query(self, q):
         bs, num_patches, d_k = q.shape
         reshaped_q = q.reshape(bs*num_patches, d_k)
-        neighbors, distances = self.NN_algorithm.search_batched(reshaped_q)
+        # neighbors, distances = self.NN_algorithm.search_batched(reshaped_q)
+        neighbors, distances = self.NN_algorithm.find_nearest_neighbors(reshaped_q)
         neighbors = neighbors.astype(np.int64)
-        neighbors = torch.from_numpy(neighbors).to(self.device)
+        neighbors = torch.from_numpy(neighbors).cpu()
         neighbors = neighbors.flatten()
         key_features = self.feature_memory[neighbors]
         key_features = key_features.reshape(bs, num_patches, self.n_neighbours, -1)
@@ -228,25 +244,23 @@ class HbirdEvaluation():
             for i, (x, y) in enumerate(tqdm(val_loader, desc='Evaluation loop')):
                 x = x.to(self.device)
                 _, _, h, w = x.shape
-                features, _ = self.feature_extractor.forward_features(x.to(self.device))
-                features = features.to(self.device)
-                y = y.to(self.device)
+                features, _ = self.feature_extractor.forward_features(x)
+                features = features.cpu()
                 y = (y * 255).long()
                 ## copy the data of features to another variable
-                q = features.clone()
-                q = q.detach().cpu().numpy()
+                q = features.clone().detach()
                 key_features, key_labels = self.find_nearest_key_to_query(q)           
                 label_hat =  self.cross_attention(features, key_features, key_labels)
                 if return_knn_details:
-                    knns.append(key_features.detach().cpu())
-                    knns_labels.append(key_labels.detach().cpu())
-                    knns_ca_labels.append(label_hat.detach().cpu())
+                    knns.append(key_features.detach())
+                    knns_labels.append(key_labels.detach())
+                    knns_ca_labels.append(label_hat.detach())
                 bs, _, label_dim = label_hat.shape
                 label_hat = label_hat.reshape(bs, eval_spatial_resolution, eval_spatial_resolution, label_dim).permute(0, 3, 1, 2)
                 resized_label_hats =  F.interpolate(label_hat.float(), size=(h, w), mode="bilinear")
                 cluster_map = resized_label_hats.argmax(dim=1).unsqueeze(1)
-                label_hats.append(cluster_map.detach().cpu())
-                lables.append(y.detach().cpu())
+                label_hats.append(cluster_map.detach())
+                lables.append(y.detach())
 
             lables = torch.cat(lables) 
             label_hats = torch.cat(label_hats)
@@ -265,8 +279,8 @@ class HbirdEvaluation():
 
 
 def hbird_evaluation(model, d_model, patch_size, dataset_name:str, data_dir:str, batch_size=64, input_size=224, 
-                        augmentation_epoch=1, device='cpu', return_knn_details=False, n_neighbours=30, nn_params=None, 
-                        ftr_extr_fn=None, memory_size=None, num_workers=8, ignore_index=255):
+                        augmentation_epoch=1, device='cpu', return_knn_details=False, n_neighbours=30, nn_method='scann', nn_params=None, 
+                        ftr_extr_fn=None, memory_size=None, num_workers=8, ignore_index=255, train_fs_path=None, val_fs_path=None):
     eval_spatial_resolution = input_size // patch_size
     if ftr_extr_fn is None:
         feature_extractor = FeatureExtractor(model, eval_spatial_resolution=eval_spatial_resolution, d_model=d_model)
@@ -280,8 +294,34 @@ def hbird_evaluation(model, d_model, patch_size, dataset_name:str, data_dir:str,
     
     dataset_size = 0
     num_classes = 0
-    ignore_index = -1   
+    ignore_index = -1 
+
+    train_file_set=None
+    if train_fs_path is not None:
+        train_file_set = read_file_set(train_fs_path)
+    val_file_set=None
+    if val_fs_path is not None:
+        val_file_set = read_file_set(val_fs_path)
+    
+    sample_fract=None
+    if "*" in dataset_name:
+        parts = dataset_name.split("*")
+        dataset_name = parts[0]
+        sample_fract = float(parts[1])
+        print(f"Using {sample_fract} fraction of the {dataset_name} dataset.")
+
     if dataset_name == "voc":
+        # Pascal VOC dataset requires always a file set for training and validation
+        if train_file_set is None:
+            train_file_set = read_file_set(os.path.join(data_dir, "sets", "trainaug.txt"))
+        if val_file_set is None:
+            val_file_set = read_file_set(os.path.join(data_dir, "sets", "val.txt"))
+
+        if sample_fract is not None:
+            random.shuffle(train_file_set)
+            train_file_set = train_file_set[:int(len(train_file_set)*sample_fract)]
+            print(f"sampled {len(train_file_set)} Pascal VOC images for training")
+
         ignore_index = 255
         dataset = VOCDataModule(batch_size=batch_size,
                                     num_workers=num_workers,
@@ -291,16 +331,81 @@ def hbird_evaluation(model, d_model, patch_size, dataset_name:str, data_dir:str,
                                     train_image_transform=train_transforms,
                                     val_transforms=val_transforms,
                                     shuffle=False,
-                                    return_masks=True)
+                                    return_masks=True,
+                                    train_file_set=train_file_set,
+                                    val_file_set=val_file_set)
         dataset.setup()
     elif dataset_name == "ade20k":
+
+        if sample_fract is not None:
+            if train_file_set is None:
+                # if the train_file_set is not provided, we sample from the whole dataset
+                train_file_set = [f.replace(".jpg","") for f in os.listdir(os.path.join(data_dir, 'images','training'))]
+            random.shuffle(train_file_set)
+            train_file_set = train_file_set[:int(len(train_file_set)*sample_fract)]
+            print(f"sampled {len(train_file_set)} ADE20k images for training")
+
         ignore_index = 0
         dataset = Ade20kDataModule(data_dir,
                  train_transforms=train_transforms,
                  val_transforms=val_transforms,
                  shuffle=False,
                  num_workers=num_workers,
-                 batch_size=batch_size)
+                 batch_size=batch_size,
+                 train_file_set=train_file_set,
+                 val_file_set=val_file_set)
+        dataset.setup()
+    elif dataset_name == "cityscapes":
+
+        if sample_fract is not None:
+            if train_file_set is None:
+                img_folder = os.path.join(data_dir, 'leftImg8bit', 'train')
+                train_file_set=list()
+                for root, _, files in os.walk(img_folder):
+                    for filename in files:
+                        if filename.endswith('.png'):
+                            base_name = filename.split("_leftImg8bit.png")[0]
+                            train_file_set.append(base_name)
+            random.shuffle(train_file_set)
+            train_file_set = train_file_set[:int(len(train_file_set)*sample_fract)]
+            print(f"sampled {len(train_file_set)} Cityscapes images for training")
+
+        ignore_index = 255
+        dataset = CityscapesDataModule(root=data_dir,
+                                           train_transforms=train_transforms,
+                                           val_transforms=val_transforms,
+                                           shuffle=False,
+                                           num_workers=num_workers,
+                                           batch_size=batch_size,
+                                           train_file_set=train_file_set,
+                                           val_file_set=val_file_set)
+        dataset.setup()
+    elif "coco" in dataset_name:
+        assert len(dataset_name.split("-")) == 2
+        mask_type = dataset_name.split("-")[-1]
+        assert mask_type in ["thing", "stuff"]
+        if mask_type == "thing":
+            num_classes = 12
+        else:
+            num_classes = 15
+        ignore_index = 255
+
+        if sample_fract is not None:
+            if train_file_set is None:
+                # if the train_file_set is not provided, we sample from the whole dataset
+                train_file_set = os.listdir(os.path.join(data_dir, "images", "train2017"))
+            random.shuffle(train_file_set)
+            train_file_set = train_file_set[:int(len(train_file_set)*sample_fract)]
+            print(f"sampled {len(train_file_set)} COCO images for training")
+
+        dataset = CocoDataModule(batch_size=batch_size,
+                                     num_workers=num_workers,
+                                     data_dir=data_dir,
+                                     mask_type=mask_type,
+                                     train_transforms=train_transforms,
+                                     val_transforms=val_transforms,
+                                     train_file_set=train_file_set,
+                                     val_file_set=val_file_set)
         dataset.setup()
     else:
         raise ValueError("Unknown dataset name")
@@ -311,7 +416,7 @@ def hbird_evaluation(model, d_model, patch_size, dataset_name:str, data_dir:str,
     val_loader = dataset.val_dataloader()
     evaluator = HbirdEvaluation(feature_extractor, train_loader, n_neighbours=n_neighbours, 
                         augmentation_epoch=augmentation_epoch, num_classes=num_classes, 
-                        device=device, nn_params=nn_params, memory_size=memory_size, 
+                        device=device, nn_method=nn_method, nn_params=nn_params, memory_size=memory_size, 
                         dataset_size=dataset_size)
     return evaluator.evaluate(val_loader, eval_spatial_resolution, return_knn_details=return_knn_details, ignore_index=ignore_index)
            

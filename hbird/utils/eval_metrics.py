@@ -1,8 +1,6 @@
 import torch
 import numpy as np
-from torchmetrics import Metric
 from typing import Optional, List, Tuple, Dict
-import os
 import time
 from joblib import Parallel, delayed
 from scipy.optimize import linear_sum_assignment

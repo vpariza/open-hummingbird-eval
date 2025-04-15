@@ -1,7 +1,5 @@
 import torchvision.transforms as trn
-import torch
-import torch.nn.functional as F
-from src.image_transformations import Compose, RandomResizedCrop, RandomHorizontalFlip, Resize
+from hbird.utils.image_transformations import Compose, RandomResizedCrop, RandomHorizontalFlip, Resize
 
 IMAGNET_MEAN = [0.485, 0.456, 0.406]
 IMAGNET_STD = [0.229, 0.224, 0.255]

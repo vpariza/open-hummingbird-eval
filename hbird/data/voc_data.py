@@ -6,7 +6,7 @@ from PIL import Image
 from pathlib import Path
 from torch.utils.data import DataLoader
 from torchvision.datasets import VisionDataset
-from typing import Tuple, Any
+from typing import Tuple, Any, List
 
 
 class VOCDataModule(pl.LightningDataModule):
@@ -27,13 +27,15 @@ class VOCDataModule(pl.LightningDataModule):
                  val_transforms: Optional[Callable]=None,
                  shuffle: bool = False,
                  return_masks: bool = False,
-                 drop_last: bool = True):
+                 drop_last: bool = True,
+                 train_file_set=None,
+                 val_file_set=None):
         """
         Data module for PVOC data. "trainaug" and "train" are valid train_splits.
         If return_masks is set train_image_transform should be callable with imgs and masks or None.
         """
         super().__init__()
-        self.root = os.path.join(data_dir, "VOCSegmentation")
+        self.root = data_dir
         self.train_split = train_split
         self.val_split = val_split
         self.batch_size = batch_size
@@ -45,14 +47,17 @@ class VOCDataModule(pl.LightningDataModule):
         self.shuffle = shuffle
         self.drop_last = drop_last
         self.return_masks = return_masks
+        self.val_file_set=val_file_set
+        self.train_file_set=train_file_set
 
         # Set up datasets in __init__ as we need to know the number of samples to init cosine lr schedules
         assert train_split == "trainaug" or train_split == "train"
         self.voc_train = VOCDataset(root=self.root, image_set=train_split, transforms=self.train_image_transform,
+                                    file_set=self.train_file_set,
                                     return_masks=self.return_masks)
-        # TODO: Check difference of passing validation transforms in the transform vs transforms parameter
         self.voc_val = VOCDataset(root=self.root, image_set=val_split, transform=self.val_image_transform,
-                                  target_transform=self.val_target_transform, transforms=self.val_transforms )
+                                  target_transform=self.val_target_transform, transforms=self.val_transforms,
+                                  file_set=self.val_file_set)
 
     def __len__(self):
         return len(self.voc_train)
@@ -117,33 +122,44 @@ class VOCDataset(VisionDataset):
             transform: Optional[Callable] = None,
             target_transform: Optional[Callable] = None,
             transforms: Optional[Callable] = None,
+            file_set: List[str] = None,
             return_masks: bool = False
     ):
     # either transform and target_transform should be passed or only transforms
         super(VOCDataset, self).__init__(root, transforms, transform, target_transform)
-
         self.image_set = image_set
+        self.root = root
+        self.return_masks = return_masks
+
+        self.images, self.masks = self.collect_data(file_set)
+        print(f"Found {len(self.images)} images and {len(self.masks)} masks in {self.root}")
+
+
+    def collect_data(self, file_set=None) -> Tuple[list, list]:
         if self.image_set == "trainaug" or self.image_set == "train":
             seg_folder = "SegmentationClassAug"
         elif self.image_set == "val":
             seg_folder = "SegmentationClass"
         else:
             raise ValueError(f"No support for image set {self.image_set}")
-        seg_dir = os.path.join(root, seg_folder)
-        image_dir = os.path.join(root, 'images')
-        if not os.path.isdir(seg_dir) or not os.path.isdir(image_dir) or not os.path.isdir(root):
+        seg_dir = os.path.join(self.root, seg_folder)
+        image_dir = os.path.join(self.root, 'images') 
+
+        if not os.path.isdir(seg_dir) or not os.path.isdir(image_dir) or not os.path.isdir(self.root):
             raise RuntimeError('Dataset not found or corrupted.')
-        splits_dir = os.path.join(root, 'sets')
-        split_f = os.path.join(splits_dir, self.image_set.rstrip('\n') + '.txt')
 
-        with open(os.path.join(split_f), "r") as f:
-            file_names = [x.strip() for x in f.readlines()]
+        # Collect the filepaths
+        if file_set is None:
+            images = [os.path.join(image_dir, f) for f in sorted(os.listdir(image_dir))]
+            masks = [os.path.join(seg_dir, f) for f in sorted(os.listdir(seg_dir))]
+        else:
+            images = [os.path.join(image_dir, f'{f}.jpg') for f in sorted(file_set)]
+            masks = [os.path.join(seg_dir, f'{f}.png') for f in sorted(file_set)]
+        
+        assert all([Path(f).is_file() for f in masks]) and all([Path(f).is_file() for f in images])
 
-        self.images = [os.path.join(image_dir, x + ".jpg") for x in file_names]
-        self.masks = [os.path.join(seg_dir, x + ".png") for x in file_names]
-        self.return_masks = return_masks
+        return images, masks
 
-        assert all([Path(f).is_file() for f in self.masks]) and all([Path(f).is_file() for f in self.images])
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         img = Image.open(self.images[index]).convert('RGB')
