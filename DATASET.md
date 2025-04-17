@@ -45,8 +45,8 @@ dataset root.
 ##### VOC Pascal
 We provide you with a zipped version of the whole dataset as well as with two smaller versions of it:
 * [Pascal VOC](https://1drv.ms/u/s!AnBBK4_o1T9MbXrxhV7BpGdS8tk?e=P7G6F0)
-* [Mini Pascal VOC](https://1drv.ms/u/s!AnBBK4_o1T9MdS8wbopnWowJcpM?e=VHhsFB)
-* [Tiny Pascal VOC](https://1drv.ms/u/s!AnBBK4_o1T9MdIuhcH4gbjsTdTY?e=spmlzg)
+* [Mini Pascal VOC](https://1drv.ms/u/c/67fac29a77adbae6/EXkWjXPBLmNIgqI1G8yZzBYB_11wyXI-_8u0pyERgib8fA?e=qle36E)
+* [Tiny Pascal VOC](https://1drv.ms/u/c/67fac29a77adbae6/EbGBdN6Z9LNEt3-3FveU344BnlECl_cwueg8-getyattqA?e=HPrVa1)
 The structure for training and evaluation should be as follows:
 ```
 dataset root.
