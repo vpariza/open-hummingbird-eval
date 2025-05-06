@@ -5,7 +5,7 @@ import random
 import argparse
 import numpy as np
 
-from src.hbird_eval import hbird_evaluation
+from hbird.hbird_eval import hbird_evaluation
 
 
 def main(args):

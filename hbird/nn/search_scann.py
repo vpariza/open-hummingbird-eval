@@ -37,7 +37,6 @@ class NearestNeighborSearchScaNN(NearestNeighborSearchBase):
         pass
 
     def find_nearest_neighbors(self, q, k=None):
-        bs, num_patches, d_k = q.shape
-        reshaped_q = q.reshape(bs * num_patches, d_k).cpu().numpy()
-        neighbors, distances = self.index.search_batched(reshaped_q)
+        neighbors, distances = self.index.search_batched(q.cpu().numpy())
+
         return neighbors, distances
