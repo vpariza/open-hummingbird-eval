@@ -1,0 +1,47 @@
+Bootstrap: docker
+
+%environment
+    export PYTHONNOUSERSITE=1
+
+%post
+set -e  # Stop on errors for safety
+
+ENV_NAME=hbird
+echo "ENV_NAME='$ENV_NAME'"
+
+# Initialize Conda in the container
+. /opt/conda/etc/profile.d/conda.sh
+
+# Clean base env and create new one
+conda deactivate || true  # in case conda is active
+conda create -n $ENV_NAME python=3.12 ipython pylint ipykernel -y
+
+# Activate new environment
+conda activate $ENV_NAME
+
+which python
+
+# Upgrade pip and install packages
+python -m pip install --upgrade pip
+
+# Debug: print pip path
+echo "Using pip:"
+which pip
+
+pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu121
+
+pip install faiss-gpu-cu12
+
+pip install lightning==2.5.5
+pip install tqdm==4.67.1
+pip install numpy==1.26.4
+pip install scipy==1.11.4
+
+# Deactivate and clean up
+conda deactivate
+conda clean --all --yes
+
+%runscript
+exec "$@"
+
+
