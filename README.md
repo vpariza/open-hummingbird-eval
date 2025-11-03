@@ -131,7 +131,7 @@ python eval.py \
 
 ```python
 import torch
-from src.hbird_eval import hbird_evaluation
+from hbird.hbird_eval import hbird_evaluation
 # Parameters for the model dino
 device = 'cuda'
 input_size = 224
@@ -180,7 +180,7 @@ print('Dense NN Ret - miou score:', hbird_miou)
 
 ```python
 import torch
-from src.hbird_eval import hbird_evaluation
+from hbird.hbird_eval import hbird_evaluation
 # Parameters for the model dino
 device = 'cuda'
 input_size = 224
@@ -345,16 +345,25 @@ also we used image size of (512,512) for the dino and (504,504) for dinov2.
 
 ---
 
+## Contributors
+
+| n  | Username |
+| ------------- | ------------- |
+| 1  | [@vpariza](https://github.com/vpariza)  |
+| 2  | [@Smsd75](https://github.com/Smsd75) |
+| 3  | [@yukimasano](https://github.com/yukimasano) |
+
 ## 🧑‍💻 Citation
 
 If you use this repository in your research, please cite:
 
 ```bibtex
-@software{open_hummingbird_evaluation_2025,
-  title  = {Open Hummingbird Evaluation – Updated},
-  author = {Your Name and contributors},
-  year   = {2025},
-  url    = {https://github.com/vpariza/open-hummingbird-eval-updated}
+@misc{pariza2024hbird,
+      author = {Pariza, Valentinos and Salehi, Mohammadreza and Asano, Yuki},
+      month = {4},
+      title = {Hummingbird Evaluation for vision encoders},
+      url = {https://github.com/vpariza/open-hummingbird-eval},
+      year = {2024}
 }
 ```
 
